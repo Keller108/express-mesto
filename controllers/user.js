@@ -18,7 +18,7 @@ const getUserId = (req, res, next) => {
 };
 
 const createUser = (req, res, next) => {
-  const { name, about, avatar } = req.body
+  const { name, about, avatar } = req.body;
 }
 
 module.exports = { getUsers, getUserId, createUser };
