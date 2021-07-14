@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 
 const { PORT = 3000 } = process.env;
 
+const ERROR404 = 404;
+
 const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -12,6 +14,7 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
+  useUnifiedTopology: true,
 });
 
 app.use((req, res, next) => {
@@ -25,6 +28,12 @@ app.use((req, res, next) => {
 app.use('/', require('./routes/user'));
 app.use('/', require('./routes/card'));
 
+// eslint-disable-next-line no-unused-vars
+app.use('*', (res, req) => {
+  res.status(ERROR404).send({ message: 'Запрашиваемый адрес не найден' });
+});
+
 app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`Слушаем порт ${PORT}`);
 });
