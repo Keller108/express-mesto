@@ -10,7 +10,7 @@ const getUsers = (req, res) => {
     .then((users) => {
       res.status(200).send(users);
     })
-    .catch(() => res.status(Error500).send({ message: 'Ошибка на сервере.' }));
+    .catch((err) => res.status(Error500).send({ message: err.message }));
 };
 
 const getUserId = (req, res) => {
@@ -21,11 +21,11 @@ const getUserId = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(Error400).send({ message: 'Переданы некорректные данные.' });
+        res.status(Error400).send({ message: err.message });
       } else if (err.message === 'IncorrectID') {
-        res.status(Error404).send({ message: 'Пользователь с таким id не найден.' });
+        res.status(Error404).send({ message: err.message });
       } else {
-        res.status(Error500).send({ message: 'Ошибка на сервере.' });
+        res.status(Error500).send({ message: err.message });
       }
     });
 };
@@ -38,9 +38,9 @@ const createUser = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        res.status(Error400).send({ message: 'Переданы некорректные данные.' });
+        res.status(Error400).send({ message: err.message });
       } else {
-        res.status(Error500).send({ message: 'Ошибка на сервере.' });
+        res.status(Error500).send({ message: err.message });
       }
     });
 };
@@ -60,11 +60,11 @@ const updateProfile = (req, res) => {
     })
     .catch((err) => {
       if (err.message === 'IncorrectID') {
-        res.status(Error404).send({ message: 'Пользователь с указанным _id не найден.' });
+        res.status(Error404).send({ message: err.message });
       } else if (err.name === 'ValidationError') {
-        res.status(Error400).send({ message: 'Переданы некорректные данные.' });
+        res.status(Error400).send({ message: err.message });
       } else {
-        res.status(Error500).send({ message: 'Ошибка на сервере.' });
+        res.status(Error500).send({ message: err.message });
       }
     });
 };
@@ -83,11 +83,11 @@ const updateAvatar = (req, res) => {
     .then((user) => { res.status(200).send(user); })
     .catch((err) => {
       if (err.message === 'IncorrectID') {
-        res.status(Error404).send({ message: 'Пользователь с указанным _id не найден.' });
+        res.status(Error404).send({ message: err.message });
       } else if (err.errors) {
-        res.status(Error400).send({ message: 'Переданы некорректные данные.' });
+        res.status(Error400).send({ message: err.message });
       } else {
-        res.status(Error500).send({ message: 'Ошибка на сервере.' });
+        res.status(Error500).send({ message: err.message });
       }
     });
 };
