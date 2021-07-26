@@ -1,7 +1,9 @@
 /* eslint-disable no-underscore-dangle */
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
 const Error400 = 400;
+const Error401 = 401;
 const Error404 = 404;
 const Error500 = 500;
 
@@ -31,18 +33,24 @@ const getUserId = (req, res) => {
 };
 
 const createUser = (req, res) => {
-  const { name, about, avatar } = req.body;
-  User.create({ name, about, avatar })
-    .then((user) => {
-      res.status(200).send(user);
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        res.status(Error400).send({ message: err.message });
-      } else {
-        res.status(Error500).send({ message: err.message });
-      }
-    });
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }
+      .then((user) => {
+        res.status(200).send(user);
+      })
+      .catch((err) => {
+        if (err.name === 'ValidationError') {
+          res.status(Error400).send({ message: err.message });
+        } else {
+          res.status(Error500).send({ message: err.message });
+        }
+      })));
 };
 
 const updateProfile = (req, res) => {
@@ -92,6 +100,19 @@ const updateAvatar = (req, res) => {
     });
 };
 
+const login = (req, res) => {
+  const { email, password } = req.body;
+
+  User.findOne({ email })
+    .orFail(new Error('IncorrectEmail'))
+    .then((user) =>{
+      if (!user) {
+        res.status(Error400).send({ message: 'Пользователя с таким email не существует.' });
+      }
+    })
+    .catch(() => res.status(Error401).send({ message: 'Ошибка аутентификации.' })
+};
+
 module.exports = {
-  getUsers, getUserId, createUser, updateProfile, updateAvatar,
+  getUsers, getUserId, createUser, updateProfile, updateAvatar, login
 };

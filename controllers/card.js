@@ -28,19 +28,24 @@ const postCard = (req, res) => {
 };
 
 const removeCard = (req, res) => {
-  const { cardId } = req.params;
-
-  Card.findByIdAndDelete(cardId)
-    .orFail(new Error('NotFound'))
-    .then((card) => res.send({ data: card }))
+  Card.findById(req.params.cardId)
+    .orFail(new Error('IncorrectCardID'))
+    .then((card) => {
+      if (card.owner.toHexString() === req.user._id) {
+        card.remove();
+        res.status(200).send({ message: `Карточка c _id: ${card._id} успешно удалена.` });
+      } else {
+        res.status(401).send({ message: `Карточку c _id: ${card._id} создал другой пользователь. Невозможно удалить.` });
+      }
+    })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return res.status(400).send({ message: err.message });
+        res.status(Error400).send({ message: 'Переданы некорректные данные.' });
+      } else if (err.message === 'IncorrectCardID') {
+        res.status(Error404).send({ message: 'Карточка с указанным _id не найдена.' });
+      } else {
+        res.status(Error500).send({ message: 'На сервере произошла ошибка.' });
       }
-      if (err.message === 'NotFound') {
-        return res.status(404).send({ message: err.message });
-      }
-      return res.status(500).send({ message: err.message });
     });
 };
 

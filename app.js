@@ -29,8 +29,10 @@ app.use('/', require('./routes/user'));
 app.use('/', require('./routes/card'));
 
 // eslint-disable-next-line no-unused-vars
-app.use('*', (res, req) => {
+app.use('*', (res, req, next) => {
   res.status(ERROR404).send({ message: 'Запрашиваемый адрес не найден' });
+
+  next();
 });
 
 app.listen(PORT, () => {
