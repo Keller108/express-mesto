@@ -1,10 +1,12 @@
 /* eslint-disable no-underscore-dangle */
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
 const Error400 = 400;
 const Error401 = 401;
 const Error404 = 404;
+const Error409 = 409;
 const Error500 = 500;
 
 const getUsers = (req, res) => {
@@ -47,6 +49,8 @@ const createUser = (req, res) => {
       .catch((err) => {
         if (err.name === 'ValidationError') {
           res.status(Error400).send({ message: err.message });
+        } else if (err.name === 'MongoError') {
+          res.status(Error409).send({ message: err.message });
         } else {
           res.status(Error500).send({ message: err.message });
         }
@@ -103,14 +107,30 @@ const updateAvatar = (req, res) => {
 const login = (req, res) => {
   const { email, password } = req.body;
 
-  User.findOne({ email })
-    .orFail(new Error('IncorrectEmail'))
-    .then((user) =>{
-      if (!user) {
-        res.status(Error400).send({ message: 'Пользователя с таким email не существует.' });
-      }
-    })
-    .catch(() => res.status(Error401).send({ message: 'Ошибка аутентификации.' })
+  if (!email || !password) {
+    res.status(401).send({ message: 'Указаные email или пароль отсутствуют.'})
+  } else {
+      User.findOne({ email })
+      .orFail(new Error('IncorrectEmail'))
+      .then((user) => {
+          bcrypt.compare(password, user.password)
+          .then((matched) => {
+            if (!matched) {
+              res.status(Error401).send({ message: 'Указан неправильный email или пароль.'})
+            } else {
+              const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expriresIn: '7d' });
+              res.status(200).send({ token });
+            }
+          })
+      })
+      .catch((err) => {
+        if (err.name === 'IncorrectEmail') {
+          res.status(Error401).send({ message: 'Указан неправильный email или пароль.'})
+        } else {
+          res.status(Error500).send({ message: 'Ошибка на сервере.' });
+        }
+      });
+    };
 };
 
 module.exports = {

@@ -1,12 +1,16 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
+
+const { login, createUser } = require('./controllers/user');
+const { auth } = require('./middlewares/auth');
 
 const { PORT = 3000 } = process.env;
 
-const ERROR404 = 404;
+const Error404 = 404;
 
 const app = express();
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -19,20 +23,22 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 app.use((req, res, next) => {
   req.user = {
-    _id: '60eacbf48473e131d0c94119', // вставьте сюда _id созданного в предыдущем пункте пользователя
+    _id: '60eacbf48473e131d0c94119'
   };
 
   next();
-});
+}); 
+
+app.post('/signup', createUser);
+app.post('/signin', login);
+
+app.use(auth);
 
 app.use('/', require('./routes/user'));
 app.use('/', require('./routes/card'));
 
-// eslint-disable-next-line no-unused-vars
-app.use('*', (res, req, next) => {
-  res.status(ERROR404).send({ message: 'Запрашиваемый адрес не найден' });
-
-  next();
+app.use("*", (req, res) => {
+  res.status(Error404).send({ message: "Ресурс не найден." });
 });
 
 app.listen(PORT, () => {
