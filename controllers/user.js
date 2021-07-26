@@ -17,7 +17,7 @@ const getUsers = (req, res) => {
     .catch((err) => res.status(Error500).send({ message: err.message }));
 };
 
-const getUserId = (req, res) => {
+const getUserById = (req, res) => {
   User.findById(req.params.userId)
     .orFail(new Error('IncorrectID'))
     .then((user) => {
@@ -110,7 +110,7 @@ const login = (req, res) => {
   if (!email || !password) {
     res.status(401).send({ message: 'Указаные email или пароль отсутствуют.'})
   } else {
-      User.findOne({ email })
+      User.findOne({ email }).select('+password')
       .orFail(new Error('IncorrectEmail'))
       .then((user) => {
           bcrypt.compare(password, user.password)
@@ -134,5 +134,5 @@ const login = (req, res) => {
 };
 
 module.exports = {
-  getUsers, getUserId, createUser, updateProfile, updateAvatar, login
+  getUsers, getUserById, createUser, updateProfile, updateAvatar, login
 };
