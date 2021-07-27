@@ -1,5 +1,4 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
 const { login, createUser } = require('./controllers/user');
@@ -29,8 +28,8 @@ app.use(auth);
 app.use('/', require('./routes/user'));
 app.use('/', require('./routes/card'));
 
-app.use("*", (req, res) => {
-  res.status(Error404).send({ message: "Ресурс не найден." });
+app.use('*', (req, res) => {
+  res.status(Error404).send({ message: 'Ресурс не найден.' });
 });
 
 app.listen(PORT, () => {

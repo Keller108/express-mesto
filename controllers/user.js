@@ -34,27 +34,27 @@ const getUserById = (req, res) => {
     });
 };
 
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
-
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
-    }
+    })
       .then((user) => {
         res.status(200).send(user);
       })
       .catch((err) => {
         if (err.name === 'ValidationError') {
           res.status(Error400).send({ message: err.message });
-        } else if (err.name === 'MongoError') {
+        } else if (err.name === 'MongoError' && err.code === 11000) {
           res.status(Error409).send({ message: err.message });
         } else {
           res.status(Error500).send({ message: err.message });
         }
-      })));
+      }))
+    .catch(next);
 };
 
 const updateProfile = (req, res) => {
@@ -108,31 +108,31 @@ const login = (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    res.status(401).send({ message: 'Указаные email или пароль отсутствуют.'})
+    res.status(401).send({ message: 'Указаные email или пароль отсутствуют.' });
   } else {
-      User.findOne({ email }).select('+password')
+    User.findOne({ email }).select('+password')
       .orFail(new Error('IncorrectEmail'))
       .then((user) => {
-          bcrypt.compare(password, user.password)
+        bcrypt.compare(password, user.password)
           .then((matched) => {
             if (!matched) {
-              res.status(Error401).send({ message: 'Указан неправильный email или пароль.'})
+              res.status(Error401).send({ message: 'Указан неправильный email или пароль.' });
             } else {
-              const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expriresIn: '7d' });
+              const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' });
               res.status(200).send({ token });
             }
-          })
+          });
       })
       .catch((err) => {
         if (err.name === 'IncorrectEmail') {
-          res.status(Error401).send({ message: 'Указан неправильный email или пароль.'})
+          res.status(Error401).send({ message: 'Указан неправильный email или пароль.' });
         } else {
           res.status(Error500).send({ message: 'Ошибка на сервере.' });
         }
       });
-    };
+  }
 };
 
 module.exports = {
-  getUsers, getUserById, createUser, updateProfile, updateAvatar, login
+  getUsers, getUserById, createUser, updateProfile, updateAvatar, login,
 };
