@@ -27,26 +27,29 @@ const postCard = (req, res) => {
     });
 };
 
-const removeCard = (req, res) => {
+const removeCard = (req, res, next) => {
   Card.findById(req.params.cardId)
-    .orFail(new Error('IncorrectCardID'))
-    .then((card) => {
-      if (card.owner.toHexString() === req.user._id) {
-        card.remove();
-        res.status(200).send({ message: `Карточка c _id: ${card._id} успешно удалена.` });
-      } else {
-        res.status(401).send({ message: `Карточку c _id: ${card._id} создал другой пользователь. Невозможно удалить.` });
-      }
+    .orFail(() => {
+      throw new Error('Карточка с таким id не найдена!');
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(Error400).send({ message: 'Переданы некорректные данные.' });
-      } else if (err.message === 'IncorrectCardID') {
-        res.status(Error404).send({ message: 'Карточка с указанным _id не найдена.' });
+    .then((card) => {
+      if (card.owner._id.toString() === req.user._id) {
+        Card.findByIdAndRemove(req.params.cardId)
+          .then((card) => {
+            res.send(card);
+          })
+          .catch((err) => {
+            if (err.name === 'CastError') {
+              throw new Error('Неправильный id');
+            }
+          })
+          .catch(next);
       } else {
-        res.status(Error500).send({ message: 'На сервере произошла ошибка.' });
+        throw new Error('Недостаточно прав для удаления карточки');
       }
-    });
+      return res.status(200).send({ message: 'Карточка удалена' });
+    })
+    .catch(next);
 };
 
 const likeCard = (req, res) => {
