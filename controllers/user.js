@@ -3,35 +3,33 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
-const Error400 = 400;
-const Error401 = 401;
-const Error404 = 404;
-const Error409 = 409;
-const Error500 = 500;
+const NotFound = require('../errors/NotFound');
+const BadRequest = require('../errors/BadRequest');
+const ConflictRequest = require('../errors/ConflictRequest');
+const Unauthorized = require('../errors/Unauthorized');
 
-const getUsers = (req, res) => {
+const getUsers = (req, res, next) => {
   User.find({})
     .then((users) => {
       res.status(200).send(users);
     })
-    .catch((err) => res.status(Error500).send({ message: err.message }));
+    .catch(next);
 };
 
-const getUserById = (req, res) => {
-  User.findById(req.params.userId)
-    .orFail(new Error('IncorrectID'))
+const getUserById = (req, res, next) => {
+  User.findById(req.user._id)
+    .orFail(() => {
+      throw new NotFound('Пользователя с таким Id не существует')
+    })
     .then((user) => {
       res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(Error400).send({ message: err.message });
-      } else if (err.message === 'IncorrectID') {
-        res.status(Error404).send({ message: err.message });
-      } else {
-        res.status(Error500).send({ message: err.message });
+        throw new BadRequest('Некорректный Id')
       }
-    });
+    })
+    .catch(next);
 };
 
 const createUser = (req, res, next) => {
