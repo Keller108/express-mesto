@@ -1,6 +1,7 @@
 /* eslint-disable linebreak-style */
 const mongoose = require('mongoose');
 const { isEmail } = require('validator');
+const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -19,6 +20,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     minlength: 1,
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
+    validate: {
+      validator: (v) => validator.isURL(v),
+      message: 'Введите корректную ссылку',
+    },
   },
   email: {
     type: String,
