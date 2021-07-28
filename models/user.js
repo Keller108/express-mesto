@@ -1,6 +1,6 @@
 /* eslint-disable linebreak-style */
 const mongoose = require('mongoose');
-// const { isEmail } = require('validator');
+const { isEmail } = require('validator');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -24,10 +24,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    // validate: {
-    //   validator: (v) => isEmail(v),
-    //   message: 'Неправильный формат почты.',
-    // },
+    validate: {
+      validator: (email) => isEmail(email),
+      message: 'Неправильный формат почты.',
+    },
   },
   password: {
     type: String,

@@ -32,7 +32,6 @@ const removeCard = (req, res, next) => {
       throw new Error('Карточка с таким id не найдена!');
     })
     .then((card) => {
-      console.log(card);
       if (card.owner._id.toString() === req.user._id) {
         Card.findByIdAndRemove(req.params.cardId)
           .then((userCard) => {

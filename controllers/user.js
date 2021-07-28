@@ -19,14 +19,14 @@ const getUsers = (req, res, next) => {
 const getUserById = (req, res, next) => {
   User.findById(req.user._id)
     .orFail(() => {
-      throw new NotFound('Пользователя с таким Id не существует')
+      throw new NotFound('Пользователя с таким Id не существует');
     })
     .then((user) => {
       res.status(200).send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequest('Некорректный Id')
+        throw new BadRequest('Некорректный Id');
       }
     })
     .catch(next);
@@ -45,17 +45,15 @@ const createUser = (req, res, next) => {
       })
       .catch((err) => {
         if (err.name === 'ValidationError') {
-          res.status(Error400).send({ message: err.message });
+          throw new BadRequest('Ошибка при создании пользователя');
         } else if (err.name === 'MongoError' && err.code === 11000) {
-          res.status(Error409).send({ message: err.message });
-        } else {
-          res.status(Error500).send({ message: err.message });
+          throw new ConflictRequest('Пользователь с таким E-mail уже существует');
         }
       }))
     .catch(next);
 };
 
-const updateProfile = (req, res) => {
+const updateProfile = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id,
     { name, about },
@@ -64,22 +62,21 @@ const updateProfile = (req, res) => {
       runValidators: true,
       upsert: false,
     })
-    .orFail(new Error('IncorrectID'))
+    .orFail(() => {
+      throw new NotFound('Пользователь не найден');
+    })
     .then((user) => {
       res.status(200).send(user);
     })
     .catch((err) => {
-      if (err.message === 'IncorrectID') {
-        res.status(Error404).send({ message: err.message });
-      } else if (err.name === 'ValidationError') {
-        res.status(Error400).send({ message: err.message });
-      } else {
-        res.status(Error500).send({ message: err.message });
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
+        throw new BadRequest('Данные пользователя не корректны');
       }
-    });
+    })
+    .catch(next);
 };
 
-const updateAvatar = (req, res) => {
+const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
   // eslint-disable-next-line no-underscore-dangle
   User.findByIdAndUpdate(req.user._id,
@@ -89,32 +86,35 @@ const updateAvatar = (req, res) => {
       runValidators: true,
       upsert: false,
     })
-    .orFail(new Error('IncorrectID'))
+    .orFail(() => {
+      throw new NotFound('Пользователя с таким id нет.');
+    })
     .then((user) => { res.status(200).send(user); })
     .catch((err) => {
-      if (err.message === 'IncorrectID') {
-        res.status(Error404).send({ message: err.message });
-      } else if (err.errors) {
-        res.status(Error400).send({ message: err.message });
-      } else {
-        res.status(Error500).send({ message: err.message });
+      if (err.name === 'ValidationError') {
+        throw new BadRequest('Ссылка на аватар некорректна');
+      } else if (err.name === 'CastError') {
+        throw new BadRequest('Id не корректен');
       }
-    });
+    })
+    .catch(next);
 };
 
-const login = (req, res) => {
+const login = (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    res.status(401).send({ message: 'Указаные email или пароль отсутствуют.' });
+    throw new NotFound('Указанные email или пароль не найдены');
   } else {
     User.findOne({ email }).select('+password')
-      .orFail(new Error('IncorrectEmail'))
+      .orFail(() => {
+        throw new BadRequest('Некорректный email');
+      })
       .then((user) => {
         bcrypt.compare(password, user.password)
           .then((matched) => {
             if (!matched) {
-              res.status(Error401).send({ message: 'Указан неправильный email или пароль.' });
+              throw new BadRequest('Указан неправильный email или пароль.');
             } else {
               const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' });
               res.status(200).send({ token });
@@ -122,12 +122,9 @@ const login = (req, res) => {
           });
       })
       .catch((err) => {
-        if (err.name === 'IncorrectEmail') {
-          res.status(Error401).send({ message: 'Указан неправильный email или пароль.' });
-        } else {
-          res.status(Error500).send({ message: 'Ошибка на сервере.' });
-        }
-      });
+        throw new Unauthorized(`Пользователь не авторизован + ${err.message}`);
+      })
+      .catch(next);
   }
 };
 
