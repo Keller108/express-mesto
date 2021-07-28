@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const { login, createUser } = require('./controllers/user');
 const auth = require('./middlewares/auth');
+const { errors } = require('./middlewares/errors');
 
 const { PORT = 3000 } = process.env;
 
@@ -31,6 +32,8 @@ app.use('/', require('./routes/card'));
 app.use('*', (req, res) => {
   res.status(Error404).send({ message: 'Ресурс не найден.' });
 });
+
+app.use(errors);
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
