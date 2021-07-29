@@ -5,7 +5,6 @@ const User = require('../models/user');
 
 const NotFound = require('../errors/NotFound');
 const BadRequest = require('../errors/BadRequest');
-const ConflictRequest = require('../errors/ConflictRequest');
 const Unauthorized = require('../errors/Unauthorized');
 
 const getUsers = (req, res, next) => {
@@ -36,21 +35,28 @@ const createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
+
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     })
       .then((user) => {
+        const userDoc = user._doc;
+        delete userDoc.password;
         res.status(200).send(user);
       })
       .catch((err) => {
+        console.log(err.name);
         if (err.name === 'ValidationError') {
+          console.log(err.name);
           throw new BadRequest('Ошибка при создании пользователя');
-        } else if (err.name === 'MongoError' && err.code === 11000) {
-          throw new ConflictRequest('Пользователь с таким E-mail уже существует');
-        }
+        } else next(err);
       }))
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        throw new BadRequest('Некорректные данные');
+      } else next(err);
+    });
 };
 
 const updateProfile = (req, res, next) => {
