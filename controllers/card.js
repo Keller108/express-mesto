@@ -27,9 +27,11 @@ const postCard = (req, res, next) => {
 };
 
 const removeCard = (req, res, next) => {
-  Card.findById(req.params.cardId)
+  const userCard = req.params.cardId;
+
+  Card.findById(userCard)
     .orFail(() => {
-      throw new Error('Карточка с таким id не найдена!');
+      throw new NotFound('Карточка с таким id не найдена!');
     })
     .then((card) => {
       if (card.owner._id.toString() === req.user._id) {
@@ -52,15 +54,22 @@ const removeCard = (req, res, next) => {
 };
 
 const likeCard = (req, res, next) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user._id } },
-    { new: true },
-  )
+  Card.findById(req.params.cardId)
     .orFail(() => {
-      throw new NotFound('Карточка с таким id не найдена!');
+      throw new NotFound('Такой карточки не существует');
     })
-    .then((card) => res.status(200).send(card))
+    .then(() => {
+      Card.findByIdAndUpdate(
+        req.params.cardId,
+        { $addToSet: { likes: req.user._id } },
+        { new: true },
+      )
+        .orFail(() => {
+          throw new NotFound('Карточка с таким id не найдена!');
+        })
+        .then((card) => res.status(200).send(card))
+        .catch(next);
+    })
     .catch((err) => {
       if (err.name === 'CastError') {
         throw new BadRequest('Ошибка валидации данных');
@@ -70,18 +79,25 @@ const likeCard = (req, res, next) => {
 };
 
 const dislikeCard = (req, res, next) => {
-  Card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: req.user._id } },
-    { new: true },
-  )
+  Card.findById(req.params.cardId)
     .orFail(() => {
-      throw new NotFound('Карточка с таким id не найдена!');
+      throw new NotFound('Такой карточки не существует');
     })
-    .then((card) => res.status(200).send(card))
+    .then(() => {
+      Card.findByIdAndUpdate(
+        req.params.cardId,
+        { $pull: { likes: req.user._id } },
+        { new: true },
+      )
+        .orFail(() => {
+          throw new NotFound('Карточка с таким id не найдена!');
+        })
+        .then((card) => res.status(200).send(card))
+        .catch(next);
+    })
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequest('Неправильный id');
+        throw new BadRequest('Ошибка валидации данных');
       }
     })
     .catch(next);
