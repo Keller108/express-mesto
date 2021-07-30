@@ -5,7 +5,6 @@ const User = require('../models/user');
 
 const NotFound = require('../errors/NotFound');
 const BadRequest = require('../errors/BadRequest');
-const Unauthorized = require('../errors/Unauthorized');
 
 const getUsers = (req, res, next) => {
   User.find({})
@@ -46,9 +45,7 @@ const createUser = (req, res, next) => {
         res.status(200).send(user);
       })
       .catch((err) => {
-        console.log(err.name);
         if (err.name === 'ValidationError') {
-          console.log(err.name);
           throw new BadRequest('Ошибка при создании пользователя');
         } else next(err);
       }))
@@ -125,10 +122,8 @@ const login = (req, res, next) => {
               const token = jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' });
               res.status(200).send({ token });
             }
-          });
-      })
-      .catch((err) => {
-        throw new Unauthorized(`Пользователь не авторизован + ${err.message}`);
+          })
+          .catch((err) => next(err));
       })
       .catch(next);
   }

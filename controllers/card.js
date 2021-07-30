@@ -1,3 +1,5 @@
+/* eslint-disable no-constant-condition */
+/* eslint-disable no-cond-assign */
 /* eslint-disable no-shadow */
 /* eslint-disable no-underscore-dangle */
 const Card = require('../models/card');
@@ -31,7 +33,7 @@ const removeCard = (req, res, next) => {
 
   Card.findById(userCard)
     .orFail(() => {
-      throw new NotFound('Карточка с таким id не найдена!');
+      throw new NotFound('Not Found');
     })
     .then((card) => {
       if (card.owner._id.toString() === req.user._id) {
@@ -44,60 +46,55 @@ const removeCard = (req, res, next) => {
               throw new BadRequest('Неправильный id');
             }
           })
-          .catch(next);
+          .catch((err) => next(err));
       } else {
         throw new Forbidden('Недостаточно прав для удаления карточки');
       }
       return res.status(200).send({ message: 'Карточка удалена' });
     })
+    .catch((err) => {
+      if (err.name === 'Error') {
+        throw new NotFound('Такой карточки не существует!');
+      } else if (err.name === 'CastError') {
+        throw new NotFound('Карточка не найдена');
+      }
+    })
     .catch(next);
 };
 
 const likeCard = (req, res, next) => {
-  Card.findById(req.params.cardId)
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $addToSet: { likes: req.user._id } },
+    { new: true },
+  )
     .orFail(() => {
-      throw new NotFound('Такой карточки не существует');
+      throw new Error('Not Found');
     })
-    .then(() => {
-      Card.findByIdAndUpdate(
-        req.params.cardId,
-        { $addToSet: { likes: req.user._id } },
-        { new: true },
-      )
-        .orFail(() => {
-          throw new NotFound('Карточка с таким id не найдена!');
-        })
-        .then((card) => res.status(200).send(card))
-        .catch(next);
-    })
+    .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new BadRequest('Ошибка валидации данных');
+      console.log(err.name);
+      if (err.name === 'Error') {
+        throw new NotFound('Карточка не найдена');
       }
     })
     .catch(next);
 };
 
 const dislikeCard = (req, res, next) => {
-  Card.findById(req.params.cardId)
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $pull: { likes: req.user._id } },
+    { new: true },
+  )
     .orFail(() => {
-      throw new NotFound('Такой карточки не существует');
+      throw new Error('Not Found');
     })
-    .then(() => {
-      Card.findByIdAndUpdate(
-        req.params.cardId,
-        { $pull: { likes: req.user._id } },
-        { new: true },
-      )
-        .orFail(() => {
-          throw new NotFound('Карточка с таким id не найдена!');
-        })
-        .then((card) => res.status(200).send(card))
-        .catch(next);
-    })
+    .then((card) => res.status(200).send(card))
     .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new BadRequest('Ошибка валидации данных');
+      console.log(err.name);
+      if (err.name === 'Error') {
+        throw new NotFound('Карточка не найдена');
       }
     })
     .catch(next);
