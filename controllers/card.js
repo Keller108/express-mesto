@@ -1,6 +1,5 @@
-/* eslint-disable no-constant-condition */
-/* eslint-disable no-cond-assign */
-/* eslint-disable no-shadow */
+/* eslint-disable no-new */
+/* eslint-disable no-undef */
 /* eslint-disable no-underscore-dangle */
 const Card = require('../models/card');
 const NotFound = require('../errors/NotFound');
@@ -29,34 +28,23 @@ const postCard = (req, res, next) => {
 };
 
 const removeCard = (req, res, next) => {
-  const userCard = req.params.cardId;
-
-  Card.findById(userCard)
+  Card.findById(req.params.cardId)
     .orFail(() => {
-      throw new NotFound('Not Found');
+      throw new Error('IncorrectID');
     })
     .then((card) => {
-      if (card.owner._id.toString() === req.user._id) {
-        Card.findByIdAndRemove(req.params.cardId)
-          .then((userCard) => {
-            res.status(200).send(userCard);
-          })
-          .catch((err) => {
-            if (err.name === 'CastError') {
-              throw new BadRequest('Неправильный id');
-            }
-          })
-          .catch((err) => next(err));
+      if (card.owner.toString() === req.user._id) {
+        card.remove();
+        res.status(200).send({ message: 'Карточка успешно удалена.' });
       } else {
         throw new Forbidden('Недостаточно прав для удаления карточки');
       }
-      return res.status(200).send({ message: 'Карточка удалена' });
     })
     .catch((err) => {
-      if (err.name === 'Error') {
-        throw new NotFound('Такой карточки не существует!');
-      } else if (err.name === 'CastError') {
-        throw new NotFound('Карточка не найдена');
+      if (err.name === 'CastError') {
+        throw new BadRequest('Карточка с указанным id не найдена.');
+      } else if (err.message === 'IncorrectID') {
+        throw new NotFound('Карточка с указанным id не найдена.');
       }
     })
     .catch(next);
@@ -69,13 +57,14 @@ const likeCard = (req, res, next) => {
     { new: true },
   )
     .orFail(() => {
-      throw new Error('Not Found');
+      throw new Error('IncorrectCardID');
     })
-    .then((card) => res.status(200).send(card))
+    .then((card) => res.send(card))
     .catch((err) => {
-      console.log(err.name);
-      if (err.name === 'Error') {
-        throw new NotFound('Карточка не найдена');
+      if (err.name === 'CastError') {
+        throw new BadRequest('Переданы некорректные данные для постановки лайка.');
+      } else if (err.message === 'IncorrectCardID') {
+        throw new NotFound(`Карточка с указанным _id: ${req.params.cardId} не найдена.`);
       }
     })
     .catch(next);
@@ -88,13 +77,14 @@ const dislikeCard = (req, res, next) => {
     { new: true },
   )
     .orFail(() => {
-      throw new Error('Not Found');
+      throw new Error('IncorrectCardID');
     })
-    .then((card) => res.status(200).send(card))
+    .then((card) => res.send(card))
     .catch((err) => {
-      console.log(err.name);
-      if (err.name === 'Error') {
-        throw new NotFound('Карточка не найдена');
+      if (err.name === 'CastError') {
+        throw new BadRequest('Переданы некорректные данные для снятия лайка.');
+      } else if (err.message === 'IncorrectCardID') {
+        throw new NotFound(`Карточка с указанным _id: ${req.params.cardId} не найдена.`);
       }
     })
     .catch(next);
