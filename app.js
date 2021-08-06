@@ -5,6 +5,7 @@ const { login, createUser } = require('./controllers/user');
 const auth = require('./middlewares/auth');
 const { errorsHandling } = require('./middlewares/errors');
 const NotFound = require('./errors/NotFound');
+const { requestLogger, errorLogger } = require('./middlewares/logger');
 
 const { PORT = 3000 } = process.env;
 
@@ -19,6 +20,8 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useFindAndModify: false,
   useUnifiedTopology: true,
 });
+
+app.use(requestLogger);
 
 app.post('/signup', celebrate({
   body: Joi.object().keys({
@@ -47,9 +50,7 @@ app.use('*', (req, res) => {
   throw new NotFound('Ресурс не найден');
 });
 
-// Я не проигнорировал *Можно лучше, обьязательно начну дорабатывать код,
-// как сдам эту и следующую ПР. Сейчас успеваю только доделать критичческие ошибки,
-// уже идет след. спринт, а я еще не начал =(
+app.use(errorLogger);
 
 app.use(errors());
 app.use(errorsHandling);
